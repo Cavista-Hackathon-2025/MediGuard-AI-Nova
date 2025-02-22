@@ -23,10 +23,11 @@ import Image from "next/image"
 import Link from "next/link"
 import { logout } from "../lib/api"
 import { useUser } from "../context/UserContext"
+// import jwtDecode from "jwt-decode";
 
 export default function Dashboard() {
   const router = useRouter()
-  const { user, loading } = useUser()
+  const { user, loading, setUser } = useUser()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [notifications, setNotifications] = useState([
     { id: 1, title: "Medication Reminder", message: "Time to take Aspirin", time: "2:30 PM" },
@@ -34,19 +35,17 @@ export default function Dashboard() {
   ])
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/auth")
-    }
-  }, [user, loading, router])
+    const token = localStorage.getItem("token");
+  
+    if (!token) {
+      router.replace("/auth"); // Redirect to login if token is missing
+    } 
+  }, [router, setUser]);
+  
 
-  const handleLogout = async () => {
-    try {
-      await logout()
-      router.push("/auth")
-    } catch (error) {
-      console.error("Logout failed:", error)
-      // Optionally show an error message to the user
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token") // Remove the authentication token
+    router.push("/auth") // Redirect to login page
   }
 
   if (loading) {

@@ -1,48 +1,68 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
-import { Shield } from "lucide-react"
-import { login, createAccount } from "../lib/api"
-import { useUser } from "../context/UserContext"
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { Shield } from "lucide-react";
+import { login, createAccount } from "../lib/api";
+import { useUser } from "../context/UserContext";
 
 export default function Auth() {
-  const router = useRouter()
-  const { setUser } = useUser()
-  const [isLogin, setIsLogin] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const { user, setUser } = useUser();
+  const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
     phoneNumber: "",
-  })
-  const [error, setError] = useState("")
+  });
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser)); 
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        localStorage.removeItem("user"); 
+      }
+    }
+  }, [setUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+  
     try {
-      let user
+      let userData;
       if (isLogin) {
-        user = await login(formData.email, formData.password)
+        userData = await login(formData.email, formData.password);
       } else {
-        user = await createAccount(formData.fullName, formData.email, formData.password, formData.phoneNumber)
+        userData = await createAccount(
+          formData.fullName,
+          formData.email,
+          formData.password,
+          formData.phoneNumber
+        );
       }
-      setUser(user)
-      router.push("/dashboard")
-    } catch (error) {
-      console.error("Authentication error:", error)
-      setError(isLogin ? "Invalid email or password" : "Failed to create account. Please try again.")
+  
+      console.log("✅ Authentication successful:", userData);
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+  
+      router.push("/dashboard");
+    } catch (error: any) {
+      console.error("❌ Authentication error:", error);
+      setError(error.response?.data?.message || "An error occurred, please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+  
 
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row">
@@ -160,6 +180,5 @@ export default function Auth() {
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
-
