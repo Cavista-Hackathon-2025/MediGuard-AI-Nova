@@ -6,9 +6,12 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { Shield } from "lucide-react"
+import { login, createAccount } from "../lib/api"
+import { useUser } from "../context/UserContext"
 
 export default function Auth() {
   const router = useRouter()
+  const { setUser } = useUser()
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -16,24 +19,32 @@ export default function Auth() {
     email: "",
     password: "",
   })
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
 
     try {
-      // TODO: Implement actual authentication
-      // For now, we'll just simulate a delay and redirect
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      let user
+      if (isLogin) {
+        user = await login(formData.email, formData.password)
+      } else {
+        user = await createAccount(formData.fullName, formData.email, formData.password)
+      }
+      setUser(user)
       router.push("/dashboard")
     } catch (error) {
       console.error("Authentication error:", error)
+      setError(isLogin ? "Invalid email or password" : "Failed to create account. Please try again.")
+    } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen w-full flex">
+    <div className="min-h-screen w-full flex flex-col md:flex-row">
       {/* Left Side - Gradient Background with Text */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
@@ -45,7 +56,7 @@ export default function Auth() {
           <span className="text-sm font-medium">MediGuard AI</span>
         </div>
         <div className="flex items-center h-full">
-          <h1 className="text-5xl font-bold leading-tight whitespace-pre-line">
+          <h1 className="text-4xl lg:text-5xl font-bold leading-tight whitespace-pre-line">
             {isLogin ? "Your Health Is\nOur Priority" : "Get Started\nWith Us\nToday!"}
           </h1>
         </div>
@@ -95,6 +106,8 @@ export default function Auth() {
                 required
               />
             </div>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <button
               type="submit"

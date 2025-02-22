@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import {
@@ -16,20 +16,45 @@ import {
   CalendarIcon,
   Plus,
   Shield,
+  Menu,
+  X,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { logout } from "../lib/api"
+import { useUser } from "../context/UserContext"
 
 export default function Dashboard() {
   const router = useRouter()
+  const { user, loading } = useUser()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [notifications, setNotifications] = useState([
     { id: 1, title: "Medication Reminder", message: "Time to take Aspirin", time: "2:30 PM" },
     { id: 2, title: "Doctor Appointment", message: "Check-up tomorrow", time: "10:00 AM" },
   ])
 
-  const handleLogout = () => {
-    // TODO: Implement actual logout logic (clear session, etc.)
-    router.push("/auth")
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/auth")
+    }
+  }, [user, loading, router])
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push("/auth")
+    } catch (error) {
+      console.error("Logout failed:", error)
+      // Optionally show an error message to the user
+    }
+  }
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (!user) {
+    return null
   }
 
   return (
@@ -38,7 +63,9 @@ export default function Dashboard() {
       <motion.aside
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="w-72 bg-white border-r shadow-sm"
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r shadow-sm transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:relative md:translate-x-0`}
       >
         <div className="p-6">
           <Link href="/" className="flex items-center space-x-2">
@@ -128,8 +155,16 @@ export default function Dashboard() {
       <div className="flex-1 overflow-auto">
         {/* Top Navigation */}
         <header className="bg-white border-b sticky top-0 z-10">
-          <div className="flex items-center justify-between px-8 py-4">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center">
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="mr-4 text-gray-500 focus:outline-none focus:text-gray-700 md:hidden"
+              >
+                {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            </div>
             <div className="flex items-center space-x-4">
               <button className="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
                 <span className="sr-only">View notifications</span>
@@ -144,23 +179,23 @@ export default function Dashboard() {
                   height={40}
                   className="rounded-full"
                 />
-                <span className="font-medium">John Doe</span>
+                <span className="font-medium hidden md:inline-block">{user.name}</span>
               </button>
             </div>
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="p-8">
+        <main className="p-4 md:p-8">
           {/* Welcome Banner */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white mb-8"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 md:p-8 text-white mb-8"
           >
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-center">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Welcome back, John! 👋</h2>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, {user.name}! 👋</h2>
                 <p className="text-blue-100 mb-4">Here's your health overview for today</p>
                 <button className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition-all">
                   View Health Report
@@ -171,7 +206,7 @@ export default function Dashboard() {
                 alt="Health Illustration"
                 width={200}
                 height={200}
-                className="w-48 h-48"
+                className="w-48 h-48 mt-4 md:mt-0"
               />
             </div>
           </motion.div>

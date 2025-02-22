@@ -2,9 +2,12 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Shield, Brain, PillIcon, Stethoscope, AlertTriangle, Activity, ArrowRight } from "lucide-react"
+import { Shield, Brain, PillIcon, Stethoscope, AlertTriangle, Activity, ArrowRight, Menu } from "lucide-react"
+import { useState } from "react"
 
 export default function Home() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
       {/* Navigation */}
@@ -13,7 +16,7 @@ export default function Home() {
           <Shield className="w-8 h-8 text-blue-600" />
           <span className="text-xl font-bold">MediGuard AI</span>
         </Link>
-        <div className="flex items-center space-x-4">
+        <div className="hidden md:flex items-center space-x-4">
           <Link href="/auth" className="bg-white text-blue-600 px-6 py-2 rounded-full hover:bg-blue-50 transition-all">
             Log In
           </Link>
@@ -21,19 +24,37 @@ export default function Home() {
             Get Started
           </Link>
         </div>
+        <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <Menu className="w-6 h-6" />
+        </button>
       </nav>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white p-4">
+          <Link href="/auth" className="block text-center py-2 text-blue-600 hover:bg-blue-50 transition-all">
+            Log In
+          </Link>
+          <Link
+            href="/auth"
+            className="block text-center py-2 mt-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all"
+          >
+            Get Started
+          </Link>
+        </div>
+      )}
 
       {/* Hero Section */}
       <div className="container mx-auto px-4 pt-16 pb-24">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-6">
               Your Personal{" "}
               <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
                 AI Health Guardian
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
               24/7 intelligent healthcare assistance powered by AI. Monitor medications, check symptoms, and get
               emergency help - all in one place.
             </p>
@@ -41,14 +62,14 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/auth"
-                className="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-all flex items-center group"
+                className="w-full sm:w-auto bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-all flex items-center justify-center group"
               >
                 Start Protection
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="#features"
-                className="bg-white text-blue-600 px-8 py-3 rounded-full hover:bg-blue-50 transition-all"
+                className="w-full sm:w-auto bg-white text-blue-600 px-8 py-3 rounded-full hover:bg-blue-50 transition-all"
               >
                 See Features
               </Link>
@@ -63,7 +84,7 @@ export default function Home() {
             className="mt-16 relative"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-blue-50 to-transparent" />
-            <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
               {[Brain, Activity, Shield].map((Icon, index) => (
                 <motion.div
                   key={index}
