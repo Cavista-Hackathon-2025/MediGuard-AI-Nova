@@ -18,6 +18,7 @@ export default function Auth() {
     fullName: "",
     email: "",
     password: "",
+    phoneNumber: "",
   })
   const [error, setError] = useState("")
 
@@ -31,7 +32,7 @@ export default function Auth() {
       if (isLogin) {
         user = await login(formData.email, formData.password)
       } else {
-        user = await createAccount(formData.fullName, formData.email, formData.password)
+        user = await createAccount(formData.fullName, formData.email, formData.password, formData.phoneNumber)
       }
       setUser(user)
       router.push("/dashboard")
@@ -49,14 +50,14 @@ export default function Auth() {
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="hidden md:flex md:w-1/2 bg-gradient-to-b from-blue-400 to-cyan-300 p-12 text-white relative"
+        className="flex flex-col md:w-1/2 bg-gradient-to-b from-blue-400 to-cyan-300 p-8 md:p-12 text-white relative"
       >
-        <div className="absolute top-8 left-8 flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mb-8">
           <Shield className="w-6 h-6" />
           <span className="text-sm font-medium">MediGuard AI</span>
         </div>
-        <div className="flex items-center h-full">
-          <h1 className="text-4xl lg:text-5xl font-bold leading-tight whitespace-pre-line">
+        <div className="flex-grow flex items-center">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
             {isLogin ? "Your Health Is\nOur Priority" : "Get Started\nWith Us\nToday!"}
           </h1>
         </div>
@@ -73,16 +74,28 @@ export default function Auth() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <div>
-                <input
-                  type="text"
-                  placeholder="Full name"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                  required
-                />
-              </div>
+              <>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Full name"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    required
+                  />
+                </div>
+                <div>
+                  <input
+                    type="tel"
+                    placeholder="Phone number"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    required
+                  />
+                </div>
+              </>
             )}
 
             <div>

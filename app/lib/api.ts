@@ -70,9 +70,9 @@ export const getUserProfile = async () => {
   }
 }
 
-export const createAccount = async (fullName: string, email: string, password: string) => {
+export const createAccount = async (fullName: string, email: string, password: string, phoneNumber: string) => {
     try {
-      const response = await api.post("/auth/register", { fullName, email, password })
+      const response = await api.post("/auth/register", { fullName, email, password, phoneNumber })
       const { token, user } = response.data
       localStorage.setItem("token", token)
       localStorage.setItem("user", JSON.stringify(user))
