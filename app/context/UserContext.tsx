@@ -1,13 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useMemo } from "react";
-import { getUserProfile } from "../lib/api";
+import { createContext, useContext, useState, useEffect } from "react";
 
 interface User {
-  id: string;
   name: string;
-  email: string;
-  createdAt: string;
+  email_address: string;
+  phone_number: string | null;
+  location: string;
 }
 
 interface UserContextType {
@@ -21,39 +20,45 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
 
   useEffect(() => {
-    const initializeUser = async () => {
-      if (!token) {
-        console.warn("⚠ No token found, redirecting to login");
+    const initializeUser = () => {
+      const token = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
+
+      console.log("🔍 Checking stored token & user:", { token, storedUser });
+
+      if (!token || !storedUser) {
+        console.warn("⚠ No token or user found, redirecting to login");
         setLoading(false);
         return;
       }
 
       try {
-        const userData = await getUserProfile();
-        console.log("✅ Retrieved user data:", userData);
-        setUser(userData);
+        const parsedUser: User = JSON.parse(storedUser);
+        console.log("✅ Loaded user from localStorage:", parsedUser);
+
+        if (!parsedUser.name || !parsedUser.email_address) {
+          console.warn("⚠ Invalid user data in localStorage, clearing...");
+          localStorage.removeItem("user");
+          setUser(null);
+        } else {
+          setUser(parsedUser);
+        }
       } catch (error) {
-        console.error("❌ Error fetching user profile:", error);
-        localStorage.removeItem("token");
-        setToken(null);
-      } finally {
-        setLoading(false);
+        console.error("❌ Error parsing user data from localStorage:", error);
+        localStorage.removeItem("user");
       }
+
+      setLoading(false);
     };
 
     initializeUser();
-  }, [token]); // Dependency array includes `token` for reactivity
+  }, []);
 
-  // Memoize the context value to prevent unnecessary re-renders
-  const value = useMemo(() => ({ user, setUser, loading }), [user, loading]);
-
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+  return <UserContext.Provider value={{ user, setUser, loading }}>{children}</UserContext.Provider>;
 };
 
-// Custom hook to use the UserContext
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {

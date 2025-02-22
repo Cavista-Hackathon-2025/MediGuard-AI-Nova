@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Shield } from "lucide-react";
@@ -20,29 +20,32 @@ export default function Auth() {
   });
   const [error, setError] = useState("");
 
+  // Retrieve stored user data (only runs once on mount)
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser)); 
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser) setUser(parsedUser);
       } catch (error) {
         console.error("Error parsing user data:", error);
-        localStorage.removeItem("user"); 
+        localStorage.removeItem("user");
       }
     }
   }, [setUser]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
   
     try {
-      let userData;
+      let user;
+  
       if (isLogin) {
-        userData = await login(formData.email, formData.password);
+        user = await login(formData.email, formData.password);
       } else {
-        userData = await createAccount(
+        user = await createAccount(
           formData.fullName,
           formData.email,
           formData.password,
@@ -50,20 +53,36 @@ export default function Auth() {
         );
       }
   
-      console.log("✅ Authentication successful:", userData);
-      setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
+      console.log("✅ API Response User:", user);
+  
+      if (!user) {
+        throw new Error("Invalid response from server.");
+      }
+  
+      // ✅ Extract user & token
+      const token = localStorage.getItem("token"); // The token is already stored in `login`
+      
+      if (!token) {
+        throw new Error("Missing authentication token.");
+      }
+  
+      console.log("🔑 Extracted Token:", token);
+      
+      // ✅ Store user data properly
+      localStorage.setItem("user", JSON.stringify(user));
+      setUser(user); // Update context
   
       router.push("/dashboard");
+  
     } catch (error: any) {
-      console.error("❌ Authentication error:", error);
-      setError(error.response?.data?.message || "An error occurred, please try again.");
+      console.error("❌ Authentication error:", error.message);
+      setError(error.response?.data?.message || error.message || "An error occurred, please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLogin, formData, router, setUser]);
   
-
+  
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row">
       {/* Left Side - Gradient Background with Text */}

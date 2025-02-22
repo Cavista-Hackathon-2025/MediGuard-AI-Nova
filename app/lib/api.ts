@@ -27,24 +27,17 @@ api.interceptors.request.use(
 )
 
 // Response interceptor for logging
-api.interceptors.response.use(
-  (response) => {
-    console.log("✅ Response:", {
-      status: response.status,
-      data: response.data,
-    })
-    return response
-  },
-  (error) => {
-    console.error("❌ Response Error:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-    })
-    return Promise.reject(error)
-  },
-)
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn("⚠ No auth token found, API request might fail.");
+    }
+    return config;
+  });
 
+  
 export const createAccount = async (fullName: string, email: string, password: string, phoneNumber: string) => {
   try {
     // Match the expected API payload structure
@@ -99,30 +92,36 @@ export const login = async (email: string, password: string) => {
   
       if (data?.status === "success" && data.data?.token) {
         const token = data.data.token;
-        const user = data.data.user; // Ensure the API returns user details
+        const user = data.data.user; // ✅ Extract user details correctly
   
-        // Store token & user data in localStorage
+        if (!user) {
+          console.error("❌ No user data returned from API!");
+          throw new Error("Invalid user data from server.");
+        }
+  
+        // ✅ Store token & user in localStorage
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
   
-        console.log("Token stored:", token);
-        console.log("User stored:", user);
+        console.log("✔ Token stored:", token);
+        console.log("✔ User stored:", user);
   
         return user;
       } else {
-        console.error("Login failed, response:", data);
+        console.error("❌ Login failed, response:", data);
         throw new Error(data.message || "Login failed");
       }
     } catch (error) {
-      console.error("Failed to login:", error);
+      console.error("❌ Failed to login:", error);
   
       if (error.response) {
-        console.log("API Error Response:", error.response.data);
+        console.log("⚠ API Error Response:", error.response.data);
       }
   
       throw error;
     }
   };
+  
   
 
 export const logout = async () => {

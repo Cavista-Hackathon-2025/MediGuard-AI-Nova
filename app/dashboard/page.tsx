@@ -57,6 +57,7 @@ export default function Dashboard() {
   }
 
   return (
+    // <h1>helllo</h1>
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
       <motion.aside
