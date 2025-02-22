@@ -37,7 +37,7 @@ api.interceptors.request.use((config) => {
     return config;
   });
 
-  
+
 export const createAccount = async (fullName: string, email: string, password: string, phoneNumber: string) => {
   try {
     // Match the expected API payload structure
@@ -114,7 +114,7 @@ export const login = async (email: string, password: string) => {
     } catch (error) {
       console.error("❌ Failed to login:", error);
   
-      if (error.response) {
+      if (axios.isAxiosError(error) && error.response) {
         console.log("⚠ API Error Response:", error.response.data);
       }
   
@@ -122,7 +122,18 @@ export const login = async (email: string, password: string) => {
     }
   };
   
-  
+
+export const SymptomChecker  = async (symptoms: string) => { 
+    try {
+        console.log("Checking symptoms:", symptoms);
+        const response = await api.post("/symptomchecker/symptomchecker", { symptoms });
+        console.log("Symptom Checker API Response:", response);
+        return response.data;
+    } catch (error) {
+        console.error("Failed to check symptoms:", error);
+        throw error;
+    }
+}
 
 export const logout = async () => {
   try {
