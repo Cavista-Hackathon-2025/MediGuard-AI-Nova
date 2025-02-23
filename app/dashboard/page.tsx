@@ -9,12 +9,10 @@ import {
   Settings,
   LogOut,
   Stethoscope,
-  PillIcon as Pills,
   AlertTriangle,
   Ambulance,
   Brain,
   CalendarIcon,
-  Plus,
   Shield,
   Menu,
   X,
@@ -22,85 +20,26 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { useUser } from "../context/UserContext"
-import { getMedicationReminders, type MedicationReminder } from "../lib/api"
 
 export default function Dashboard() {
   const router = useRouter()
   const { user, loading } = useUser()
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "Medication Reminder", message: "Time to take Aspirin", time: "2:30 PM" },
-    { id: 2, title: "Doctor Appointment", message: "Check-up tomorrow", time: "10:00 AM" },
-  ])
-  const [medications, setMedications] = useState<MedicationReminder[]>([])
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
-
     if (!token) {
-      router.replace("/auth") // Redirect to login if token is missing
-    }
-
-    const storedMedications = localStorage.getItem("medications")
-    if (storedMedications) {
-      setMedications(JSON.parse(storedMedications))
+      router.replace("/auth")
     }
   }, [router])
 
-  useEffect(() => {
-    const fetchMedications = async () => {
-      try {
-        const response = await getMedicationReminders()
-        if (response.status === "success") {
-          setMedications(response.data.medicationRemainders)
-        }
-      } catch (error) {
-        console.error("Error fetching medications:", error)
-      }
-    }
-
-    fetchMedications()
-  }, [])
-
   const handleLogout = () => {
-    localStorage.removeItem("token") // Remove the authentication token
-    router.push("/auth") // Redirect to login page
+    localStorage.removeItem("token")
+    router.push("/auth")
   }
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
-  }
-
-  function calculateNextDose(medication: MedicationReminder): string {
-    if (!medication.medication_time) {
-      return "Time not set"
-    }
-
-    const now = new Date()
-    const lastSent = medication.last_sent ? new Date(medication.last_sent) : new Date(medication.medication_date)
-    const [hours, minutes] = medication.medication_time.split(":")
-
-    if (!hours || !minutes) {
-      return "Invalid time format"
-    }
-
-    let nextDose = new Date(lastSent)
-    nextDose.setHours(Number.parseInt(hours), Number.parseInt(minutes), 0, 0)
-
-    // Convert repeat_interval to milliseconds
-    const intervalMs = medication.repeat_interval * 60 * 60 * 1000
-
-    // If the last sent time is after the medication time, add the interval
-    if (lastSent > nextDose) {
-      nextDose = new Date(lastSent.getTime() + intervalMs)
-    }
-
-    // Keep adding the interval until we find the next future dose
-    while (nextDose <= now) {
-      nextDose = new Date(nextDose.getTime() + intervalMs)
-    }
-
-    return nextDose.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   }
 
   if (loading) {
@@ -149,14 +88,6 @@ export default function Dashboard() {
             </Link>
 
             <Link
-              href="/medication-reminders"
-              className="flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50"
-            >
-              <Pills className="w-5 h-5" />
-              <span className="font-medium">Medication Reminders</span>
-            </Link>
-
-            <Link
               href="/drug-interactions"
               className="flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50"
             >
@@ -165,7 +96,7 @@ export default function Dashboard() {
             </Link>
 
             <Link
-              href="/emergency"
+              href="/emergency-help"
               className="flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50"
             >
               <Ambulance className="w-5 h-5" />
@@ -178,6 +109,13 @@ export default function Dashboard() {
             >
               <Brain className="w-5 h-5" />
               <span className="font-medium">Health Insights</span>
+            </Link>
+            <Link
+              href="/medication-reminders"
+              className="flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50"
+            >
+              <Brain className="w-5 h-5" />
+              <span className="font-medium">Medication Reminder</span>
             </Link>
           </div>
 
@@ -233,15 +171,8 @@ export default function Dashboard() {
                       .toUpperCase()}
                   </div>
                 ) : (
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-02-21%20115139-oehJuzUt11jfPrUl7pR14RdKJHCZS9.png"
-                    alt="Profile"
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                  />
+                  <Image src="/placeholder.svg" alt="Profile" width={40} height={40} className="rounded-full" />
                 )}
-
                 <span className="font-medium hidden md:inline-block">{user.name}</span>
               </button>
             </div>
@@ -267,8 +198,8 @@ export default function Dashboard() {
               <Image
                 src="/ghuo.jpg"
                 alt="Health Illustration"
-                width={700}
-                height={300}
+                width={200}
+                height={200}
                 className="w-48 h-48 mt-4 md:mt-0 rounded-[1.5rem]"
               />
             </div>
@@ -283,24 +214,6 @@ export default function Dashboard() {
               className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-gray-500">Today's Medications</h3>
-                <Pills className="w-5 h-5 text-blue-500" />
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{medications.length}</div>
-              <div className="mt-2 text-sm text-gray-600">
-                {medications.length > 0 && medications[0].medication_time
-                  ? `Next dose: ${calculateNextDose(medications[0])}`
-                  : "No medications scheduled"}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all"
-            >
-              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-gray-500">Upcoming Appointments</h3>
                 <CalendarIcon className="w-5 h-5 text-green-500" />
               </div>
@@ -311,7 +224,7 @@ export default function Dashboard() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.2 }}
               className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all"
             >
               <div className="flex items-center justify-between mb-4">
@@ -321,11 +234,25 @@ export default function Dashboard() {
               <div className="text-2xl font-bold text-gray-900">85%</div>
               <div className="mt-2 text-sm text-green-600">↑ 5% from last week</div>
             </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-gray-500">Recent Activities</h3>
+                <Activity className="w-5 h-5 text-blue-500" />
+              </div>
+              <div className="text-2xl font-bold text-gray-900">7</div>
+              <div className="mt-2 text-sm text-gray-600">Last activity: 2 hours ago</div>
+            </motion.div>
           </div>
 
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Upcoming Medications */}
+            {/* Health Insights */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -333,49 +260,28 @@ export default function Dashboard() {
               className="bg-white rounded-xl shadow-sm p-6"
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Upcoming Medications</h2>
-                <Link href="/medication-reminders" className="text-blue-600 hover:text-blue-700">
+                <h2 className="text-xl font-bold text-gray-900">Health Insights</h2>
+                <Link href="/health-insights" className="text-blue-600 hover:text-blue-700">
                   View all
                 </Link>
               </div>
               <div className="space-y-4">
-                {medications.length > 0 ? (
-                  medications.slice(0, 3).map((medication) => (
-                    <div
-                      key={medication.medication_remainder_id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Pills className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{medication.medication_name}</h4>
-                          <p className="text-sm text-gray-500">{medication.medication_dose}</p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(medication.medication_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-blue-600 font-medium">
-                        {medication.medication_time && medication.repeat_interval
-                          ? calculateNextDose(medication)
-                          : "Schedule not set"}
-                      </span>
+                {[
+                  { title: "Sleep Analysis", description: "Your sleep pattern has improved by 15%" },
+                  { title: "Step Count", description: "You've reached 80% of your daily goal" },
+                  { title: "Heart Rate", description: "Your resting heart rate is within the normal range" },
+                ].map((insight, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
+                  >
+                    <div>
+                      <h4 className="font-medium text-gray-900">{insight.title}</h4>
+                      <p className="text-sm text-gray-500">{insight.description}</p>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center text-gray-500">
-                    No medications added yet. Add medications from the Medication Reminders page.
+                    <Brain className="w-5 h-5 text-blue-600" />
                   </div>
-                )}
-                <Link
-                  href="/medication-reminders"
-                  className="w-full py-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-all flex items-center justify-center space-x-2"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Add Medication</span>
-                </Link>
+                ))}
               </div>
             </motion.div>
 
@@ -411,12 +317,15 @@ export default function Dashboard() {
               {/* Upcoming Events */}
               <div className="space-y-4 mt-6">
                 <h3 className="font-medium text-gray-900">Upcoming Events</h3>
-                {[1, 2].map((_, index) => (
+                {[
+                  { title: "Doctor's Appointment", date: "March 15, 10:00 AM" },
+                  { title: "Fitness Class", date: "March 18, 6:00 PM" },
+                ].map((event, index) => (
                   <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className="w-2 h-2 rounded-full bg-blue-600"></div>
                     <div>
-                      <h4 className="font-medium text-gray-900">Doctor's Appointment</h4>
-                      <p className="text-sm text-gray-500">March 15, 10:00 AM</p>
+                      <h4 className="font-medium text-gray-900">{event.title}</h4>
+                      <p className="text-sm text-gray-500">{event.date}</p>
                     </div>
                   </div>
                 ))}

@@ -10,21 +10,21 @@ const api = axios.create({
 })
 
 // Request interceptor for logging
-api.interceptors.request.use(
-  (config) => {
-    console.log("🚀 Request:", {
-      url: config.url,
-      method: config.method,
-      data: config.data,
-      headers: config.headers,
-    })
-    return config
-  },
-  (error) => {
-    console.error("❌ Request Error:", error)
-    return Promise.reject(error)
-  },
-)
+// api.interceptors.request.use(
+//   (config) => {
+//     console.log("Request:", {
+//       url: config.url,
+//       method: config.method,
+//       data: config.data,
+//       headers: config.headers,
+//     })
+//     return config
+//   },
+//   (error) => {
+//     console.error("❌ Request Error:", error)
+//     return Promise.reject(error)
+//   },
+// )
 
 // Response interceptor for logging
 api.interceptors.request.use((config) => {
