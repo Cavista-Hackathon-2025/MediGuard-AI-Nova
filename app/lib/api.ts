@@ -172,3 +172,62 @@ export const getUserProfile = async () => {
   }
 }
 
+export interface MedicationReminder {
+  medication_remainder_id: string
+  medication_name: string
+  medication_dose: string
+  medication_time: string
+  repeat_interval: number
+  medication_date: string
+  schedule: string
+}
+
+interface MedicationReminderResponse {
+  status: string
+  message: string
+  data: {
+    medication_remainder_id: string
+    medication_name: string
+    medication_dose: string
+    medication_time: string
+    repeat_interval: number
+    medication_date: string
+    schedule: string
+    id: number
+  }
+}
+
+interface MedicationRemindersResponse {
+  status: string
+  message: string
+  data: {
+    medicationRemainders: MedicationReminder[]
+  }
+}
+
+export const createMedicationReminder = async (
+  reminderData: Omit<MedicationReminder, "medication_remainder_id" | "schedule">,
+) => {
+  try {
+    const response = await api.post<MedicationReminderResponse>("/medication-remainder/", reminderData)
+    console.log("Medication Reminder Creation Response:", response.data)
+    return response.data
+  } catch (error) {
+    console.error("Failed to create medication reminder:", error)
+    throw error
+  }
+}
+
+export const getMedicationReminders = async () => {
+  try {
+    const response = await api.get<MedicationRemindersResponse>("/medication-remainder")
+    console.log("Medication Reminders Retrieved:", response.data)
+    return response.data
+  } catch (error) {
+    console.error("Failed to get medication reminders:", error)
+    throw error
+  }
+}
+
+
+

@@ -22,6 +22,8 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { useUser } from "../context/UserContext"
+// Import the getMedicationReminders function
+import { getMedicationReminders, type MedicationReminder } from "../lib/api"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -38,7 +40,8 @@ export default function Dashboard() {
     interval: number
   }
 
-  const [medications, setMedications] = useState<Medication[]>([])
+  // Add this state inside the Dashboard component
+  const [medications, setMedications] = useState<MedicationReminder[]>([])
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -52,6 +55,22 @@ export default function Dashboard() {
       setMedications(JSON.parse(storedMedications))
     }
   }, [router])
+
+  // Add this effect to fetch medication reminders
+  useEffect(() => {
+    const fetchMedications = async () => {
+      try {
+        const response = await getMedicationReminders()
+        if (response.status === "success") {
+          setMedications(response.data.medicationRemainders)
+        }
+      } catch (error) {
+        console.error("Error fetching medications:", error)
+      }
+    }
+
+    fetchMedications()
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem("token") // Remove the authentication token
@@ -245,8 +264,10 @@ export default function Dashboard() {
                 <h3 className="text-gray-500">Today's Medications</h3>
                 <Pills className="w-5 h-5 text-blue-500" />
               </div>
-              <div className="text-2xl font-bold text-gray-900">3/4</div>
-              <div className="mt-2 text-sm text-gray-600">Next dose in 2 hours</div>
+              <div className="text-2xl font-bold text-gray-900">{medications.length}</div>
+              <div className="mt-2 text-sm text-gray-600">
+                {medications.length > 0 ? `Next dose: ${medications[0].medication_time}` : "No medications scheduled"}
+              </div>
             </motion.div>
 
             <motion.div
@@ -297,7 +318,7 @@ export default function Dashboard() {
                 {medications.length > 0 ? (
                   medications.slice(0, 3).map((medication, index) => (
                     <div
-                      key={index}
+                      key={medication.medication_remainder_id}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
                     >
                       <div className="flex items-center space-x-3">
@@ -305,12 +326,14 @@ export default function Dashboard() {
                           <Pills className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">{medication.name}</h4>
-                          <p className="text-sm text-gray-500">{medication.dosage}</p>
-                          <p className="text-sm text-gray-500">{new Date().toLocaleDateString()}</p>
+                          <h4 className="font-medium text-gray-900">{medication.medication_name}</h4>
+                          <p className="text-sm text-gray-500">{medication.medication_dose}</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(medication.medication_date).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                      <span className="text-blue-600 font-medium">{medication.time}</span>
+                      <span className="text-blue-600 font-medium">{medication.medication_time}</span>
                     </div>
                   ))
                 ) : (

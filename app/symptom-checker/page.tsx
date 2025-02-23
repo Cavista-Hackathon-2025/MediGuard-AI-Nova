@@ -1,158 +1,177 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Mic, Send } from "lucide-react";
-import { SymptomChecker as checkSymptomAPI, GetSymptomChecker } from "../lib/api"; // Adjust path if needed
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { Mic, Send, History, Search, ArrowRight } from "lucide-react"
+import { SymptomChecker as checkSymptomAPI, GetSymptomChecker } from "../lib/api"
+
+interface SymptomCheck {
+  id: string
+  message: string
+  response: string
+  created_at: string
+}
 
 export default function SymptomChecker() {
-  const [symptoms, setSymptoms] = useState("");
-  const [response, setResponse] = useState<string | null>(null);
-  const [previousChecks, setPreviousChecks] = useState<{ symptom: string; result: string }[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [symptoms, setSymptoms] = useState("")
+  const [response, setResponse] = useState<string | null>(null)
+  const [previousChecks, setPreviousChecks] = useState<SymptomCheck[]>([])
+  const [loading, setLoading] = useState(false)
 
-  // ✅ Fetch Previous Symptom Checks on Mount
   useEffect(() => {
     const fetchPreviousChecks = async () => {
       try {
-        const data = await GetSymptomChecker();
-        setPreviousChecks(data || []);
+        const response = await GetSymptomChecker()
+        if (response?.status === "success" && response.data) {
+          setPreviousChecks(response.data.symptomChecks || [])
+        }
       } catch (error) {
-        console.error("Error fetching previous symptoms:", error);
+        console.error("Error fetching previous symptoms:", error)
       }
-    };
-
-    fetchPreviousChecks();
-  }, []);
-
-  // ✅ Function to Format API Response for Readability
-  const formatResponse = (data: any): string => {
-    if (!data) return "No response received.";
-
-    if (typeof data === "string") {
-      return data.trim(); // Clean plain text responses.
     }
 
-    if (Array.isArray(data)) {
-      return data.map((item) => `- ${item}`).join("\n"); // Convert arrays to bullet points.
-    }
+    fetchPreviousChecks()
+  }, [])
 
-    if (typeof data === "object") {
-      return Object.entries(data)
-        .map(([key, value]) => {
-          const formattedKey = key.replace(/_/g, " ").toUpperCase(); // Format keys nicely
-          if (Array.isArray(value)) {
-            return `**${formattedKey}**:\n${value.map((v) => `- ${v}`).join("\n")}`;
-          } else if (typeof value === "object") {
-            return `**${formattedKey}**:\n${formatResponse(value)}`;
-          } else {
-            return `**${formattedKey}**: ${value}`;
-          }
-        })
-        .join("\n\n"); // Separate sections with line breaks.
-    }
-
-    return "Unknown response format.";
-  };
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   const handleCheckSymptoms = async () => {
-    if (!symptoms.trim()) return; // Prevent empty input
+    if (!symptoms.trim()) return
 
-    setLoading(true);
-    setResponse(null);
+    setLoading(true)
+    setResponse(null)
 
     try {
-      const data = await checkSymptomAPI(symptoms);
+      const response = await checkSymptomAPI(symptoms)
 
-      if (data?.status === "success") {
-        const formattedResult = formatResponse(data.data); // Format the response neatly
-        setResponse(formattedResult);
-        // setPreviousChecks((prev) => [...prev, { symptom: symptoms, result: formattedResult }]);
+      if (response?.status === "success") {
+        setResponse(response.data.response)
+        // Refresh the list of previous checks
+        const updatedChecks = await GetSymptomChecker()
+        if (updatedChecks?.status === "success" && updatedChecks.data) {
+          setPreviousChecks(updatedChecks.data.symptomChecks || [])
+        }
       } else {
-        setResponse(data.message || "Something went wrong. Try again.");
+        setResponse(response?.message || "Something went wrong. Try again.")
       }
     } catch (err) {
-      setResponse("Oops! Something went wrong. Please try again.");
+      setResponse("Oops! Something went wrong. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-      <motion.h1
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-xl font-bold mb-6 text-center"
-      >
-        How are you feeling today?
-      </motion.h1>
-
-      {/* Input Field */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="relative w-full max-w-2xl"
-      >
-        <div className="relative">
-          <Mic className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
-
-          <input
-            type="text"
-            value={symptoms}
-            onChange={(e) => setSymptoms(e.target.value)}
-            placeholder="Describe your symptoms..."
-            className="w-full p-4 pl-12 pr-14 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-lg"
-          />
-
-          <button
-            onClick={handleCheckSymptoms}
-            disabled={loading}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition disabled:bg-gray-400"
-          >
-            <Send size={18} />
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Response Section */}
-      {loading && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-gray-600 text-sm italic">
-          Typing...
-        </motion.p>
-      )}
-
-      {response && (
+    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+      <div className="max-w-4xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-6 w-full max-w-2xl bg-white p-4 rounded-xl border border-gray-200 shadow-md whitespace-pre-line"
+          className="bg-white rounded-2xl shadow-sm border p-6 md:p-8 mb-8"
         >
-          {response}
-        </motion.div>
-      )}
+          <h1 className="text-2xl font-semibold mb-6">How are you feeling today?</h1>
 
-      {/* Previous Symptom Checks */}
-      {previousChecks.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-8 w-full max-w-2xl bg-white p-4 rounded-xl border border-gray-200 shadow-md"
-        >
-          <h2 className="text-lg font-semibold mb-4">Past Symptom Checks</h2>
-          <ul className="space-y-3">
-            {previousChecks.map((item, index) => (
-              <li key={index} className="p-3 bg-gray-100 rounded-lg whitespace-pre-line">
-                <strong className="block text-gray-700">Symptom:</strong> {item.symptom}
-                <strong className="block mt-1 text-gray-700">Result:</strong> {item.result}
-              </li>
-            ))}
-          </ul>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={symptoms}
+              onChange={(e) => setSymptoms(e.target.value)}
+              placeholder="Describe your symptoms..."
+              className="block w-full pl-11 pr-16 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleCheckSymptoms()
+                }
+              }}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <Mic className="h-5 w-5 text-gray-400" />
+              </button>
+              <button
+                onClick={handleCheckSymptoms}
+                disabled={loading || !symptoms.trim()}
+                className="ml-2 bg-blue-600 text-white p-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors disabled:bg-gray-300"
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {loading && (
+            <div className="mt-4 flex items-center text-sm text-gray-500">
+              <div className="animate-pulse mr-2">●</div>
+              Analyzing your symptoms...
+            </div>
+          )}
+
+          {response && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200"
+            >
+              <div className="prose max-w-none whitespace-pre-line">{response}</div>
+            </motion.div>
+          )}
         </motion.div>
-      )}
+
+        {previousChecks.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold flex items-center">
+                <History className="w-5 h-5 mr-2" />
+                Your recent symptom checks
+              </h2>
+              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
+                View all <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {previousChecks.map((check, index) => (
+                <motion.div
+                  key={check.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 line-clamp-1">{check.message}</h3>
+                      <p className="text-sm text-gray-500">{formatDate(check.created_at)}</p>
+                    </div>
+                    <button
+                      className="ml-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      onClick={() => {
+                        setSymptoms(check.message)
+                        window.scrollTo({ top: 0, behavior: "smooth" })
+                      }}
+                    >
+                      <Search className="w-4 h-4 text-gray-400" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-3">{check.response}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  );
+  )
 }
+

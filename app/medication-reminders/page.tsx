@@ -6,56 +6,61 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { PillIcon as Pills, Plus, Bell, X } from "lucide-react"
 import Link from "next/link"
+import { createMedicationReminder, getMedicationReminders, type MedicationReminder } from "../lib/api"
 
 export default function MedicationReminders() {
-  type Medication = {
-    id: number
-    name: string
-    dosage: string
-    time: string
-    interval: number
-  }
-
-  const [medications, setMedications] = useState<Medication[]>([])
-  const [newMedication, setNewMedication] = useState<Partial<Medication>>({
-    name: "",
-    dosage: "",
-    time: "",
-    interval: 2,
+  const [medications, setMedications] = useState<MedicationReminder[]>([])
+  const [newMedication, setNewMedication] = useState<Omit<MedicationReminder, "medication_remainder_id" | "schedule">>({
+    medication_name: "",
+    medication_dose: "",
+    medication_time: "",
+    repeat_interval: 6,
+    medication_date: new Date().toISOString().split("T")[0],
   })
 
   useEffect(() => {
-    const storedMedications = localStorage.getItem("medications")
-    if (storedMedications) {
-      setMedications(JSON.parse(storedMedications))
-    }
+    fetchMedications()
   }, [])
 
-  const handleAddMedication = (e: React.FormEvent) => {
+  const fetchMedications = async () => {
+    try {
+      const response = await getMedicationReminders()
+      if (response.status === "success") {
+        setMedications(response.data.medicationRemainders)
+      }
+    } catch (error) {
+      console.error("Error fetching medications:", error)
+    }
+  }
+
+  const handleAddMedication = async (e: React.FormEvent) => {
     e.preventDefault()
-    if ((newMedication.interval ?? 0) >= 2 && (newMedication.interval ?? 0) <= 24) {
-      const updatedMedications = [
-        ...medications,
-        {
-          id: Date.now(),
-          name: newMedication.name!,
-          dosage: newMedication.dosage!,
-          time: newMedication.time!,
-          interval: newMedication.interval!,
-        },
-      ]
-      setMedications(updatedMedications)
-      localStorage.setItem("medications", JSON.stringify(updatedMedications))
-      setNewMedication({ name: "", dosage: "", time: "", interval: 2 })
+    if (newMedication.repeat_interval >= 2 && newMedication.repeat_interval <= 24) {
+      try {
+        const response = await createMedicationReminder(newMedication)
+        if (response.status === "success") {
+          await fetchMedications()
+          setNewMedication({
+            medication_name: "",
+            medication_dose: "",
+            medication_time: "",
+            repeat_interval: 6,
+            medication_date: new Date().toISOString().split("T")[0],
+          })
+        }
+      } catch (error) {
+        console.error("Error adding medication:", error)
+      }
     } else {
       alert("Interval must be between 2 and 24 hours.")
     }
   }
 
-  const handleRemoveMedication = (id: number) => {
-    const updatedMedications = medications.filter((med) => med.id !== id)
-    setMedications(updatedMedications)
-    localStorage.setItem("medications", JSON.stringify(updatedMedications))
+  const handleRemoveMedication = async (id: string) => {
+    // Implement delete functionality here
+    console.log("Remove medication with id:", id)
+    // After successful deletion, refetch medications
+    await fetchMedications()
   }
 
   return (
@@ -76,38 +81,45 @@ export default function MedicationReminders() {
         className="mb-8 bg-white p-6 rounded-lg shadow-md"
       >
         <h2 className="text-xl font-semibold mb-4">Add New Medication</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <input
             type="text"
-            value={newMedication.name}
-            onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
+            value={newMedication.medication_name}
+            onChange={(e) => setNewMedication({ ...newMedication, medication_name: e.target.value })}
             placeholder="Medication Name"
             className="p-2 border rounded"
             required
           />
           <input
             type="text"
-            value={newMedication.dosage}
-            onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
+            value={newMedication.medication_dose}
+            onChange={(e) => setNewMedication({ ...newMedication, medication_dose: e.target.value })}
             placeholder="Dosage"
             className="p-2 border rounded"
             required
           />
           <input
             type="time"
-            value={newMedication.time}
-            onChange={(e) => setNewMedication({ ...newMedication, time: e.target.value })}
+            value={newMedication.medication_time}
+            onChange={(e) => setNewMedication({ ...newMedication, medication_time: e.target.value })}
             className="p-2 border rounded"
             required
           />
           <input
             type="number"
-            value={newMedication.interval}
-            onChange={(e) => setNewMedication({ ...newMedication, interval: Number(e.target.value) })}
+            value={newMedication.repeat_interval}
+            onChange={(e) => setNewMedication({ ...newMedication, repeat_interval: Number(e.target.value) })}
             placeholder="Interval (hours)"
             className="p-2 border rounded"
             min="2"
             max="24"
+            required
+          />
+          <input
+            type="date"
+            value={newMedication.medication_date}
+            onChange={(e) => setNewMedication({ ...newMedication, medication_date: e.target.value })}
+            className="p-2 border rounded"
             required
           />
         </div>
@@ -125,7 +137,7 @@ export default function MedicationReminders() {
           <ul className="space-y-4">
             {medications.map((medication, index) => (
               <motion.li
-                key={medication.id}
+                key={medication.medication_remainder_id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 + index * 0.1 }}
@@ -136,9 +148,13 @@ export default function MedicationReminders() {
                     <Pills className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{medication.name}</h3>
+                    <h3 className="font-semibold">{medication.medication_name}</h3>
                     <p className="text-sm text-gray-600">
-                      {medication.dosage} at {medication.time}, every {medication.interval} hours
+                      {medication.medication_dose} at {medication.medication_time}, every {medication.repeat_interval}{" "}
+                      hours
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Starting from: {new Date(medication.medication_date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -147,7 +163,7 @@ export default function MedicationReminders() {
                     <Bell size={20} />
                   </button>
                   <button
-                    onClick={() => handleRemoveMedication(medication.id)}
+                    onClick={() => handleRemoveMedication(medication.medication_remainder_id)}
                     className="text-red-600 hover:text-red-800"
                   >
                     <X size={20} />
