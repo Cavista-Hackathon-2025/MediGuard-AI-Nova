@@ -21,31 +21,45 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { logout } from "../lib/api"
 import { useUser } from "../context/UserContext"
-// import jwtDecode from "jwt-decode";
 
 export default function Dashboard() {
   const router = useRouter()
-  const { user, loading, setUser } = useUser()
+  const { user, loading } = useUser()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [notifications, setNotifications] = useState([
     { id: 1, title: "Medication Reminder", message: "Time to take Aspirin", time: "2:30 PM" },
     { id: 2, title: "Doctor Appointment", message: "Check-up tomorrow", time: "10:00 AM" },
   ])
+  interface Medication {
+    name: string
+    dosage: string
+    time: string
+    interval: number
+  }
+
+  const [medications, setMedications] = useState<Medication[]>([])
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-  
+    const token = localStorage.getItem("token")
+
     if (!token) {
-      router.replace("/auth"); // Redirect to login if token is missing
-    } 
-  }, [router, setUser]);
-  
+      router.replace("/auth") // Redirect to login if token is missing
+    }
+
+    const storedMedications = localStorage.getItem("medications")
+    if (storedMedications) {
+      setMedications(JSON.parse(storedMedications))
+    }
+  }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem("token") // Remove the authentication token
     router.push("/auth") // Redirect to login page
+  }
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen)
   }
 
   if (loading) {
@@ -57,13 +71,10 @@ export default function Dashboard() {
   }
 
   return (
-    // <h1>helllo</h1>
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <motion.aside
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r shadow-sm transition-all duration-300 ease-in-out ${
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r shadow-sm transition-all duration-300 ease-in-out transform ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:translate-x-0`}
       >
@@ -149,7 +160,7 @@ export default function Dashboard() {
             </div>
           </div>
         </nav>
-      </motion.aside>
+      </aside>
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
@@ -158,7 +169,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-4 py-4">
             <div className="flex items-center">
               <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                onClick={toggleSidebar}
                 className="mr-4 text-gray-500 focus:outline-none focus:text-gray-700 md:hidden"
               >
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -172,13 +183,24 @@ export default function Dashboard() {
                 <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
               </button>
               <button className="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
-                <Image
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-02-21%20115139-oehJuzUt11jfPrUl7pR14RdKJHCZS9.png"
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
+                {user?.name ? (
+                  <div className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white font-bold rounded-full">
+                    {user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                ) : (
+                  <Image
+                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-02-21%20115139-oehJuzUt11jfPrUl7pR14RdKJHCZS9.png"
+                    alt="Profile"
+                    width={40}
+                    height={40}
+                    className="rounded-full"
+                  />
+                )}
+
                 <span className="font-medium hidden md:inline-block">{user.name}</span>
               </button>
             </div>
@@ -202,11 +224,11 @@ export default function Dashboard() {
                 </button>
               </div>
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-02-21%20115139-oehJuzUt11jfPrUl7pR14RdKJHCZS9.png"
+                src="/ghuo.jpg"
                 alt="Health Illustration"
-                width={200}
-                height={200}
-                className="w-48 h-48 mt-4 md:mt-0"
+                width={700}
+                height={300}
+                className="w-48 h-48 mt-4 md:mt-0 rounded-[1.5rem]"
               />
             </div>
           </motion.div>
@@ -267,30 +289,42 @@ export default function Dashboard() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Upcoming Medications</h2>
-                <button className="text-blue-600 hover:text-blue-700">View all</button>
+                <Link href="/medication-reminders" className="text-blue-600 hover:text-blue-700">
+                  View all
+                </Link>
               </div>
               <div className="space-y-4">
-                {[1, 2, 3].map((_, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Pills className="w-5 h-5 text-blue-600" />
+                {medications.length > 0 ? (
+                  medications.slice(0, 3).map((medication, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Pills className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{medication.name}</h4>
+                          <p className="text-sm text-gray-500">{medication.dosage}</p>
+                          <p className="text-sm text-gray-500">{new Date().toLocaleDateString()}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">Aspirin</h4>
-                        <p className="text-sm text-gray-500">100mg - 1 tablet</p>
-                      </div>
+                      <span className="text-blue-600 font-medium">{medication.time}</span>
                     </div>
-                    <span className="text-blue-600 font-medium">2:30 PM</span>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500">
+                    No medications added yet. Add medications from the Medication Reminders page.
                   </div>
-                ))}
-                <button className="w-full py-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-all flex items-center justify-center space-x-2">
+                )}
+                <Link
+                  href="/medication-reminders"
+                  className="w-full py-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-all flex items-center justify-center space-x-2"
+                >
                   <Plus className="w-5 h-5" />
                   <span>Add Medication</span>
-                </button>
+                </Link>
               </div>
             </motion.div>
 
@@ -340,6 +374,11 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={toggleSidebar}></div>
+      )}
     </div>
   )
 }

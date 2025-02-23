@@ -123,17 +123,32 @@ export const login = async (email: string, password: string) => {
   };
   
 
-export const SymptomChecker  = async (symptoms: string) => { 
-    try {
-        console.log("Checking symptoms:", symptoms);
-        const response = await api.post("/symptomchecker/symptomchecker", { symptoms });
-        console.log("Symptom Checker API Response:", response);
-        return response.data;
-    } catch (error) {
-        console.error("Failed to check symptoms:", error);
-        throw error;
-    }
-}
+// ✅ Symptom Checker (POST)
+export const SymptomChecker = async (message: string) => {
+  try {
+    console.log("🔎 Checking symptoms:", message);
+    const response = await api.post("/symptomchecker", { message });
+    console.log("Symptom Checker API Response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to check symptoms:", error);
+    throw error;
+  }
+};
+
+// ✅ Get Symptom Data (GET)
+export const GetSymptomChecker = async () => {
+  try {
+    console.log("📡 Fetching symptom data...");
+    const response = await api.get("/symptomchecker");
+    console.log("✔ Symptom Checker Data:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Failed to get symptom data:", error);
+    throw error;
+  }
+};
+
 
 export const logout = async () => {
   try {

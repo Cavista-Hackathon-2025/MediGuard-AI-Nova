@@ -2,26 +2,60 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { PillIcon as Pills, Plus, Bell, X } from "lucide-react"
+import Link from "next/link"
 
 export default function MedicationReminders() {
-  const [medications, setMedications] = useState([
-    { id: 1, name: "Aspirin", dosage: "100mg", time: "08:00" },
-    { id: 2, name: "Lisinopril", dosage: "10mg", time: "20:00" },
-  ])
+  type Medication = {
+    id: number
+    name: string
+    dosage: string
+    time: string
+    interval: number
+  }
 
-  const [newMedication, setNewMedication] = useState({ name: "", dosage: "", time: "" })
+  const [medications, setMedications] = useState<Medication[]>([])
+  const [newMedication, setNewMedication] = useState<Partial<Medication>>({
+    name: "",
+    dosage: "",
+    time: "",
+    interval: 2,
+  })
+
+  useEffect(() => {
+    const storedMedications = localStorage.getItem("medications")
+    if (storedMedications) {
+      setMedications(JSON.parse(storedMedications))
+    }
+  }, [])
 
   const handleAddMedication = (e: React.FormEvent) => {
     e.preventDefault()
-    setMedications([...medications, { id: Date.now(), ...newMedication }])
-    setNewMedication({ name: "", dosage: "", time: "" })
+    if ((newMedication.interval ?? 0) >= 2 && (newMedication.interval ?? 0) <= 24) {
+      const updatedMedications = [
+        ...medications,
+        {
+          id: Date.now(),
+          name: newMedication.name!,
+          dosage: newMedication.dosage!,
+          time: newMedication.time!,
+          interval: newMedication.interval!,
+        },
+      ]
+      setMedications(updatedMedications)
+      localStorage.setItem("medications", JSON.stringify(updatedMedications))
+      setNewMedication({ name: "", dosage: "", time: "", interval: 2 })
+    } else {
+      alert("Interval must be between 2 and 24 hours.")
+    }
   }
 
   const handleRemoveMedication = (id: number) => {
-    setMedications(medications.filter((med) => med.id !== id))
+    const updatedMedications = medications.filter((med) => med.id !== id)
+    setMedications(updatedMedications)
+    localStorage.setItem("medications", JSON.stringify(updatedMedications))
   }
 
   return (
@@ -42,7 +76,7 @@ export default function MedicationReminders() {
         className="mb-8 bg-white p-6 rounded-lg shadow-md"
       >
         <h2 className="text-xl font-semibold mb-4">Add New Medication</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
             value={newMedication.name}
@@ -66,6 +100,16 @@ export default function MedicationReminders() {
             className="p-2 border rounded"
             required
           />
+          <input
+            type="number"
+            value={newMedication.interval}
+            onChange={(e) => setNewMedication({ ...newMedication, interval: Number(e.target.value) })}
+            placeholder="Interval (hours)"
+            className="p-2 border rounded"
+            min="2"
+            max="24"
+            required
+          />
         </div>
         <button
           type="submit"
@@ -77,36 +121,53 @@ export default function MedicationReminders() {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
         <h2 className="text-2xl font-semibold mb-4">Your Medications</h2>
-        <ul className="space-y-4">
-          {medications.map((medication, index) => (
-            <motion.li
-              key={medication.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 + index * 0.1 }}
-              className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center"
-            >
-              <div>
-                <h3 className="font-semibold">{medication.name}</h3>
-                <p className="text-sm text-gray-600">
-                  {medication.dosage} at {medication.time}
-                </p>
-              </div>
-              <div className="flex items-center">
-                <button className="text-blue-600 hover:text-blue-800 mr-2">
-                  <Bell size={20} />
-                </button>
-                <button
-                  onClick={() => handleRemoveMedication(medication.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </motion.li>
-          ))}
-        </ul>
+        {medications.length > 0 ? (
+          <ul className="space-y-4">
+            {medications.map((medication, index) => (
+              <motion.li
+                key={medication.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 + index * 0.1 }}
+                className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Pills className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{medication.name}</h3>
+                    <p className="text-sm text-gray-600">
+                      {medication.dosage} at {medication.time}, every {medication.interval} hours
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <button className="text-blue-600 hover:text-blue-800 mr-2">
+                    <Bell size={20} />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveMedication(medication.id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </motion.li>
+            ))}
+          </ul>
+        ) : (
+          <div className="text-center text-gray-500">
+            No medications added yet. Use the form above to add medications.
+          </div>
+        )}
       </motion.div>
+
+      <div className="mt-8">
+        <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
+          ← Back to Dashboard
+        </Link>
+      </div>
     </div>
   )
 }
