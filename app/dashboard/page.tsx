@@ -22,7 +22,6 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { useUser } from "../context/UserContext"
-// Import the getMedicationReminders function
 import { getMedicationReminders, type MedicationReminder } from "../lib/api"
 
 export default function Dashboard() {
@@ -33,14 +32,6 @@ export default function Dashboard() {
     { id: 1, title: "Medication Reminder", message: "Time to take Aspirin", time: "2:30 PM" },
     { id: 2, title: "Doctor Appointment", message: "Check-up tomorrow", time: "10:00 AM" },
   ])
-  interface Medication {
-    name: string
-    dosage: string
-    time: string
-    interval: number
-  }
-
-  // Add this state inside the Dashboard component
   const [medications, setMedications] = useState<MedicationReminder[]>([])
 
   useEffect(() => {
@@ -56,7 +47,6 @@ export default function Dashboard() {
     }
   }, [router])
 
-  // Add this effect to fetch medication reminders
   useEffect(() => {
     const fetchMedications = async () => {
       try {
@@ -79,6 +69,38 @@ export default function Dashboard() {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
+  }
+
+  function calculateNextDose(medication: MedicationReminder): string {
+    if (!medication.medication_time) {
+      return "Time not set"
+    }
+
+    const now = new Date()
+    const lastSent = medication.last_sent ? new Date(medication.last_sent) : new Date(medication.medication_date)
+    const [hours, minutes] = medication.medication_time.split(":")
+
+    if (!hours || !minutes) {
+      return "Invalid time format"
+    }
+
+    let nextDose = new Date(lastSent)
+    nextDose.setHours(Number.parseInt(hours), Number.parseInt(minutes), 0, 0)
+
+    // Convert repeat_interval to milliseconds
+    const intervalMs = medication.repeat_interval * 60 * 60 * 1000
+
+    // If the last sent time is after the medication time, add the interval
+    if (lastSent > nextDose) {
+      nextDose = new Date(lastSent.getTime() + intervalMs)
+    }
+
+    // Keep adding the interval until we find the next future dose
+    while (nextDose <= now) {
+      nextDose = new Date(nextDose.getTime() + intervalMs)
+    }
+
+    return nextDose.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   }
 
   if (loading) {
@@ -266,7 +288,9 @@ export default function Dashboard() {
               </div>
               <div className="text-2xl font-bold text-gray-900">{medications.length}</div>
               <div className="mt-2 text-sm text-gray-600">
-                {medications.length > 0 ? `Next dose: ${medications[0].medication_time}` : "No medications scheduled"}
+                {medications.length > 0 && medications[0].medication_time
+                  ? `Next dose: ${calculateNextDose(medications[0])}`
+                  : "No medications scheduled"}
               </div>
             </motion.div>
 
@@ -316,7 +340,7 @@ export default function Dashboard() {
               </div>
               <div className="space-y-4">
                 {medications.length > 0 ? (
-                  medications.slice(0, 3).map((medication, index) => (
+                  medications.slice(0, 3).map((medication) => (
                     <div
                       key={medication.medication_remainder_id}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
@@ -333,7 +357,11 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <span className="text-blue-600 font-medium">{medication.medication_time}</span>
+                      <span className="text-blue-600 font-medium">
+                        {medication.medication_time && medication.repeat_interval
+                          ? calculateNextDose(medication)
+                          : "Schedule not set"}
+                      </span>
                     </div>
                   ))
                 ) : (

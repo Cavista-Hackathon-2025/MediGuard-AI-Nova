@@ -172,13 +172,14 @@ export const getUserProfile = async () => {
   }
 }
 
-export interface MedicationReminder {
+interface MedicationReminder {
   medication_remainder_id: string
   medication_name: string
   medication_dose: string
   medication_time: string
   repeat_interval: number
   medication_date: string
+  last_sent: string | null
   schedule: string
 }
 
@@ -186,16 +187,10 @@ interface MedicationReminderResponse {
   status: string
   message: string
   data: {
-    medication_remainder_id: string
-    medication_name: string
-    medication_dose: string
-    medication_time: string
-    repeat_interval: number
-    medication_date: string
-    schedule: string
-    id: number
+    medicationRemainders: MedicationReminder[] // Array of medication reminders
   }
 }
+
 
 interface MedicationRemindersResponse {
   status: string

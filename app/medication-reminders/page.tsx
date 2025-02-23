@@ -13,8 +13,7 @@ export default function MedicationReminders() {
   const [newMedication, setNewMedication] = useState<Omit<MedicationReminder, "medication_remainder_id" | "schedule">>({
     medication_name: "",
     medication_dose: "",
-    medication_time: "",
-    repeat_interval: 6,
+    repeat_interval: 0,
     medication_date: new Date().toISOString().split("T")[0],
   })
 
@@ -35,7 +34,7 @@ export default function MedicationReminders() {
 
   const handleAddMedication = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (newMedication.repeat_interval >= 2 && newMedication.repeat_interval <= 24) {
+    if (newMedication.repeat_interval >= 0.1 && newMedication.repeat_interval <= 24) { 
       try {
         const response = await createMedicationReminder(newMedication)
         if (response.status === "success") {
@@ -43,19 +42,18 @@ export default function MedicationReminders() {
           setNewMedication({
             medication_name: "",
             medication_dose: "",
-            medication_time: "",
-            repeat_interval: 6,
-            medication_date: new Date().toISOString().split("T")[0],
+            repeat_interval: 0
           })
         }
       } catch (error) {
         console.error("Error adding medication:", error)
       }
     } else {
-      alert("Interval must be between 2 and 24 hours.")
+      alert("Interval must be between 0.1 and 24 hours.")
     }
   }
-
+  
+  
   const handleRemoveMedication = async (id: string) => {
     // Implement delete functionality here
     console.log("Remove medication with id:", id)
@@ -98,30 +96,20 @@ export default function MedicationReminders() {
             className="p-2 border rounded"
             required
           />
-          <input
-            type="time"
-            value={newMedication.medication_time}
-            onChange={(e) => setNewMedication({ ...newMedication, medication_time: e.target.value })}
-            className="p-2 border rounded"
-            required
-          />
-          <input
-            type="number"
-            value={newMedication.repeat_interval}
-            onChange={(e) => setNewMedication({ ...newMedication, repeat_interval: Number(e.target.value) })}
-            placeholder="Interval (hours)"
-            className="p-2 border rounded"
-            min="2"
-            max="24"
-            required
-          />
-          <input
-            type="date"
-            value={newMedication.medication_date}
-            onChange={(e) => setNewMedication({ ...newMedication, medication_date: e.target.value })}
-            className="p-2 border rounded"
-            required
-          />
+<input
+  type="number"
+  value={newMedication.repeat_interval}
+  onChange={(e) => setNewMedication({ ...newMedication, repeat_interval: Number(e.target.value) })}
+  placeholder="Interval (hours)"
+  className="p-2 border rounded"
+  min="0.1"
+  max="24"
+  step="0.1"
+  required
+/>
+
+
+   
         </div>
         <button
           type="submit"
@@ -150,7 +138,7 @@ export default function MedicationReminders() {
                   <div>
                     <h3 className="font-semibold">{medication.medication_name}</h3>
                     <p className="text-sm text-gray-600">
-                      {medication.medication_dose} at {medication.medication_time}, every {medication.repeat_interval}{" "}
+                      {medication.medication_dose} at, every {medication.repeat_interval}{" "}
                       hours
                     </p>
                     <p className="text-sm text-gray-600">
