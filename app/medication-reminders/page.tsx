@@ -9,6 +9,11 @@ import Link from "next/link"
 import { createMedicationReminder, getMedicationReminders, type MedicationReminder } from "../lib/api"
 
 export default function MedicationReminders() {
+
+
+  // Example: Get medication reminders
+// const reminders = await getMedicationReminders()
+
   const [medications, setMedications] = useState<MedicationReminder[]>([])
   const [newMedication, setNewMedication] = useState<Omit<MedicationReminder, "medication_remainder_id" | "schedule">>({
     medication_name: "",

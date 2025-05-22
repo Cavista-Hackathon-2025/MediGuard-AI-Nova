@@ -18,6 +18,11 @@ export default function SymptomChecker() {
   const [previousChecks, setPreviousChecks] = useState<SymptomCheck[]>([])
   const [loading, setLoading] = useState(false)
 
+
+  // Example: Symptom checker
+// const result = await SymptomChecker("I have a headache")
+
+
   useEffect(() => {
     const fetchPreviousChecks = async () => {
       try {
